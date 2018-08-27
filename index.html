@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8" />
+    <title>Spooky and scary, wow!</title>
+    <style>
+    	* { padding: 0; margin: 0; }
+    	canvas { background: #000; display: block; margin: 0 auto; }
+    </style>
+</head>
+<body>
+
+<canvas id="myCanvas" width="480" height="320"></canvas>
+
+<script>
+	var canvas = document.getElementById("myCanvas");
+  var ctx = canvas.getContext("2d");
+  //Stats
+  var gameOver = false;
+
+  //Graphics
+  var playerX = canvas.width/2;
+  var playerY = canvas.height-30;
+  var charArea = 10;
+
+  var monsterX = canvas.width/2;
+  var monsterY = canvas.height-300;
+  var monsterArea = 20;
+
+  //Player Movement
+  var moveSpeed = 2;
+  var upPressed = false;
+  var downPressed = false;
+  var leftPressed = false;
+  var rightPressed = false;
+
+  document.addEventListener("keydown", keyDownHandler, false);
+  document.addEventListener("keyup", keyUpHandler, false);
+
+  function keyDownHandler(e){
+    if(e.keyCode == 38){
+      upPressed = true;
+    }
+    else if(e.keyCode == 40){
+      downPressed = true;
+    }
+    else if(e.keyCode == 37){
+      leftPressed = true;
+    }
+    else if(e.keyCode == 39){
+      rightPressed = true;
+    }
+  }
+  function keyUpHandler(e){
+    if(e.keyCode == 38){
+      upPressed = false;
+    }
+    else if(e.keyCode == 40){
+      downPressed = false;
+    }
+    else if(e.keyCode == 37){
+      leftPressed = false;
+    }
+    else if(e.keyCode == 39){
+      rightPressed = false;
+    }
+  }
+
+  function drawPlayer(){
+    ctx.beginPath();
+    ctx.rect(playerX, playerY, 10, 10);
+    ctx.fillStyle = "#FFF";
+    ctx.fill();
+    ctx.closePath();
+  }
+  function drawMonster(){
+    ctx.beginPath();
+    ctx.rect(monsterX, monsterY, 20, 20);
+    ctx.fillStyle = "#FF0000";
+    ctx.fill();
+    ctx.closePath();
+  }
+
+  function draw(){
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    console.log("Player X: " + playerX + " PlayerY: " + playerY);
+    console.log("Monster X: " + monsterX + " Monster Y: " + monsterY);
+    drawPlayer();
+    drawMonster();
+    checkGameOver();
+    if(upPressed && playerY > 0){
+      playerY -= moveSpeed;
+    }
+    if(downPressed && playerY < canvas.height-charArea){
+      playerY += moveSpeed;
+    }
+    if(leftPressed && playerX > 0){
+      playerX -= moveSpeed;
+    }
+    if(rightPressed && playerX < canvas.width-charArea){
+      playerX += moveSpeed;
+    }
+
+  }
+  function checkGameOver(){
+    // if(playerX + monsterArea == monsterX || playerX - monsterArea == monsterX && playerX + monsterArea == monsterX || playerX - monsterArea == monsterX){
+    //   alert("Gameover");
+    //   gameOver = true;
+    // }
+    if(gameOver == false && playerX - monsterX < monsterArea && playerY - monsterY < monsterArea){
+      gameOver = true;
+        alert("Gameover");
+
+    }
+  }
+
+  if(!gameOver){
+    setInterval(draw, 10);
+  }
+
+</script>
+
+</body>
+</html>
