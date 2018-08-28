@@ -5,23 +5,47 @@
     <title>Spooky and scary, wow!</title>
     <style>
     	* { padding: 0; margin: 0; }
+      /* body { background-color: black; } */
     	canvas { background: #000; display: block; margin: 0 auto; }
     </style>
 </head>
 <body>
 
-<canvas id="myCanvas" width="480" height="320"></canvas>
+<canvas id="myCanvas" width="640" height="480"></canvas>
 
 <script>
 	var canvas = document.getElementById("myCanvas");
-  var player = canvas.getContext("2d");
-  var monster = canvas.getContext("2d");
+  var ctx = canvas.getContext("2d");
 
   //Stats
   var gameOver = false;
 
   //Graphics
 
+  //Monsters
+  var monsters = [
+    {
+      "color" : "#FF0000",
+      "size" : 20,
+      "speed" : 2
+    },
+    {
+      "color" : "#00FF00",
+      "size" : 50,
+      "speed" : 1
+    },
+    {
+      "color" : "#FF00FF",
+      "size" : 10,
+      "speed" : 3
+    },
+    {
+      "color" : "#990099",
+      "size" : 30,
+      "speed" : 2,
+      "fakeNumber" : true
+    }
+  ]
   //Keys
   var colors = [
     "#FF0000",
@@ -31,26 +55,26 @@
     "#FFFF00",
     "#00FFFF"
   ]
-  var numbers = [
-    1,
-    2,
-    3,
-    4,
-    5,
-    6
-  ]
+  var keys = [];
+  generateKeys();
+  var walls = generateWalls();
+
   //Player Stats
   var playerX = canvas.width/2;
   var playerY = canvas.height-30;
   var charArea = 10;
-  var moveSpeed = 2;
+  var moveSpeed = 1.8;
+  var lightRadius = 100;
+  var lightColor = "#FFFFFF40";
+  var lightColor2 = "#FFFFFF44";
 
   //Monster Stats
+  var monster = generateMonster();
   var monsterX = canvas.width/2;
   var monsterY = canvas.height-300;
-  var monsterArea = 20;
+  var monsterArea = monster.size;
   var monsterMoveRate = 3;
-  var monsterSpeed = 3;
+  var monsterSpeed = monster.speed;
 
   //Player Movement
   var upPressed = false;
@@ -89,35 +113,7 @@
       rightPressed = false;
     }
   }
-
-  function drawPlayer(){
-    player.beginPath();
-    player.rect(playerX, playerY, 10, 10);
-    player.fillStyle = "#FFF";
-    player.fill();
-    player.closePath();
-  }
-  function drawMonster(){
-    monster.beginPath();
-    if(rollMonsterMovement() == 0){
-      monsterMovement();
-    }
-    else{
-      monster.rect(monsterX, monsterY, 20, 20);
-    }
-    monster.fillStyle = "#FF0000";
-    monster.fill();
-    monster.closePath();
-
-  }
-
-  function draw(){
-    player.clearRect(0, 0, canvas.width, canvas.height);
-    monster.clearRect(0, 0, canvas.width, canvas.height);
-    drawPlayer();
-    drawMonster();
-    generateKeys();
-    checkGameOver();
+  function playerMovement(){
     if(upPressed && playerY > 0){
       playerY -= moveSpeed;
     }
@@ -130,7 +126,76 @@
     if(rightPressed && playerX < canvas.width-charArea){
       playerX += moveSpeed;
     }
+  }
+  function drawPlayer(){
+    ctx.fillStyle = "#FFF";
+    ctx.fillRect(playerX, playerY, 10, 10);
+    ctx.closePath();
 
+  }
+  function drawDark(){
+    ctx.beginPath();
+    ctx.fillStyle = "#FFFFFF33";
+    ctx.rect(0, 0, canvas.width, canvas.height);
+    ctx.fill();
+    ctx.closePath();
+
+
+  }
+  function drawLight(){
+    if(lightRadius > 20){
+      lightRadius -= 0.005;
+    }
+    var lightRoll = Math.round(Math.random() * 1);
+    if(lightRoll == 1){
+      ctx.fillStyle = lightColor;
+    }
+    else{
+      ctx.fillStyle = lightColor2;
+    }
+    ctx.save();
+    ctx.beginPath();
+    ctx.arc((playerX +5), (playerY +5), lightRadius, 0, 2 * Math.PI, false);
+    ctx.stroke();
+    ctx.fill();
+    ctx.closePath();
+    ctx.clip();
+    drawMonster();
+    drawDark();
+    drawWalls(walls);
+    drawKeys();
+    ctx.restore();
+
+  }
+  function drawWalls(walls){
+    for(var i = 0; i < walls.length; i++){
+      ctx.fillStyle = "#000";
+      ctx.fillRect(walls[i].x, walls[i].y, walls[i].width, walls[i].height);
+      ctx.closePath();
+    }
+  }
+  function drawKeys(){
+    for(var i = 0; i < keys.length; i++){
+      ctx.font = '24px serif';
+      ctx.fillText(keys[i].number, keys[i].x, keys[i].y,);
+      ctx.fillStyle = keys[i].color;
+    }
+  }
+  function drawMonster(){
+    ctx.beginPath();
+    ctx.fillStyle = monster.color;
+    if(monster.fakeNumber){
+      ctx.font = '24px serif';
+      ctx.fillText("9", (monsterX - 5), (monsterY - 5));
+    }
+    else{
+      ctx.rect((monsterX - 5), (monsterY - 5), monster.size, monster.size);
+      ctx.fill();
+    }
+    if(rollMonsterMovement() == 0){
+      monsterMovement();
+    }
+    ctx.closePath();
   }
   //Monster Behavior
   function monsterMovement(){
@@ -146,28 +211,79 @@
     if(monsterY < playerY){
       monsterY = monsterY + monsterSpeed;
     }
-    monster.rect(monsterX, monsterY, 20, 20);
   }
   function rollMonsterMovement(){
      return(Math.round(Math.random() * monsterMoveRate));
   }
+
+
+  //Drawing
+  function draw(){
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    drawLight();
+    drawPlayer();
+    checkGameOver();
+    playerMovement()
+  }
+
   //Keys
   function generateKeys(){
-    for(var i = colors.length; i > 0; i--){
-      var color = Math.round(Math.random() * colors.length);
-
+    if(keys.length < 6){
+      var color = Math.round(Math.random() * (colors.length -1));
+      var number = Math.round(Math.random() * 9);
+      var x = Math.round(Math.random() * canvas.width);
+      var y = Math.round(Math.random() * canvas.height);
+      if(colors[color]){
+        keys.push({"number" : number, "color" : colors[color], "x" : x, "y" : y});
+        colors.splice(color, 1);
+      }
+      generateKeys();
     }
   }
 
   //Basic Game Functions
+  function generateMonster(){
+    var chosenMonster = Math.round(Math.random() * (monsters.length - 1));
+    return monsters[chosenMonster];
+  }
+  function generateWalls(){
+    var numberOfWalls = Math.round(Math.random() * 10);
+    var walls = [];
+    for(var i = 0; i < numberOfWalls; i++){
+      walls.push(generateWall());
+    }
+    return walls;
+  }
+  function generateWall(){
+    var width = Math.round(Math.random() * 500);
+    var height = Math.round(Math.random() * 500);
+    if(width > 400 && height > 400){
+      height /= 5;
+    }
+    else{
+      width /= 5;
+    }
+    if(width <= 20){
+      width = 100;
+    }
+    if(height <= 20){
+      height = 100;
+    }
+    var x = Math.round(Math.random() * canvas.width);
+    var y = Math.round(Math.random() * canvas.height);
+    // if(width > 200){
+    //   height /= 10;
+    // }
+    return  wall = {"width" : width, "height" : height, "x" : x, "y" : y};
+  }
   function checkGameOver(){
     var xDist = playerX - monsterX;
     var yDist = playerY - monsterY;
     var distance = Math.sqrt( xDist * xDist + yDist * yDist );
     if(gameOver == false && distance < monsterArea - 5 && distance != 0){
       gameOver = true;
-        alert("Gameover");
-        document.location.reload();
+        // alert("Gameover");
+        // document.location.reload();
     }
   }
 
