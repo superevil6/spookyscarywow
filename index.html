@@ -11,11 +11,19 @@
 </head>
 <body>
 
-<canvas id="myCanvas" width="640" height="480"></canvas>
+<canvas id="myCanvas" width="800" height="600"></canvas>
 
 <script>
 	var canvas = document.getElementById("myCanvas");
   var ctx = canvas.getContext("2d");
+
+  //Sound
+  var context = new AudioContext();
+  var o = context.createOscillator();
+  var  g = context.createGain();
+  var frequency = 73.42;
+  var skip = false;
+  o.start(0);
 
   //Stats
   var gameOver = false;
@@ -58,6 +66,8 @@
   var keys = [];
   generateKeys();
   var walls = generateWalls();
+
+
 
   //Player Stats
   var playerX = canvas.width/2;
@@ -113,6 +123,20 @@
       rightPressed = false;
     }
   }
+  // function playerMovement(){
+  //   if(upPressed && playerY > 0 && wallCollision(playerX, playerY, walls)){
+  //     playerY -= moveSpeed;
+  //   }
+  //   if(downPressed && playerY < canvas.height-charArea && wallCollision(playerX, playerY, walls)){
+  //     playerY += moveSpeed;
+  //   }
+  //   if(leftPressed && playerX > 0 && wallCollision(playerX, playerY, walls)){
+  //     playerX -= moveSpeed;
+  //   }
+  //   if(rightPressed && playerX < canvas.width-charArea && wallCollision(playerX, playerY, walls)){
+  //     playerX += moveSpeed;
+  //   }
+  // }
   function playerMovement(){
     if(upPressed && playerY > 0){
       playerY -= moveSpeed;
@@ -162,15 +186,15 @@
     ctx.clip();
     drawMonster();
     drawDark();
-    drawWalls(walls);
+    drawRooms(rooms);
     drawKeys();
     ctx.restore();
 
   }
-  function drawWalls(walls){
-    for(var i = 0; i < walls.length; i++){
+  function drawRooms(rooms){
+    for(var i = 0; i < rooms.length; i++){
       ctx.fillStyle = "#000";
-      ctx.fillRect(walls[i].x, walls[i].y, walls[i].width, walls[i].height);
+      ctx.fillRect(rooms[i].x, rooms[i].y, rooms[i].width, rooms[i].height);
       ctx.closePath();
     }
   }
@@ -222,8 +246,9 @@
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     drawLight();
     drawPlayer();
-    checkGameOver();
     playerMovement()
+
+    checkDistance();
   }
 
   //Keys
@@ -254,6 +279,58 @@
     }
     return walls;
   }
+  function generateRooms(){
+    var numberOfRooms = getRandomInt(6, 10);
+    var rooms = [];
+    var roomPositions = [];
+    for(var i = 0; i < numberOfRooms; i++){
+      if(i > 0){
+        rooms.push(generateRoom(i, rooms[i-1].x, rooms[i-1].y));
+      }
+      else{
+        rooms.push(generateRoom(i, getRandomInt(10, 50), getRandomInt(10, 50)));
+      }
+      findCenterOfRoom(rooms[i]);
+    }
+    return rooms;
+  }
+
+
+  var rooms = generateRooms();
+  function generateRoom(roomNumber, prevX, prevY){
+    console.log(prevX, prevY);
+    var width = getRandomInt(150, 400);
+    var height = getRandomInt(150, 400);
+    var x = getRandomInt(prevX + 40, prevX + 100);
+    var y = getRandomInt(prevY, prevY + 20);
+    if(roomNumber % 3 == 0){
+      y += 100;
+    }
+    return rooms = {"width" : width, "height" : height, "x" : x, "y" : y};
+  }
+  function findCenterOfRoom(room){
+    roomCenter = (Math.sqrt( room.x * room.x + room.y * room.y ) / 2) + getRandomInt(-100, 100);
+    console.log(roomCenter);
+  }
+  function roomCoordinateGenerator(room){
+
+  }
+  /*
+    When generating rooms, I want to be able to place them sufficiently appart, and I want to be able to create a hallway between them
+    A room should have at leasat two entrances so the player doesn't get trapped.
+
+    Considering making a static start and end room.
+
+    hallways should be generated between a range close to the middle of the room.
+
+    O-O---O
+    | |   |
+    O-O --O---O
+      |       |
+      O-------O
+
+      Generate rooms one at a time, and pass on the the xy of the previous room. change the minimum accordingly.
+  */
   function generateWall(){
     var width = Math.round(Math.random() * 500);
     var height = Math.round(Math.random() * 500);
@@ -276,7 +353,13 @@
     // }
     return  wall = {"width" : width, "height" : height, "x" : x, "y" : y};
   }
-  function checkGameOver(){
+  function getRandomInt(min, max){
+    min = Math.ceil(min);
+    max = Math.floor(max);
+    return Math.floor(Math.random() * (max - min)) + min; //The maximum is exclusive and the minimum is inclusive
+  }
+
+  function checkDistance(){
     var xDist = playerX - monsterX;
     var yDist = playerY - monsterY;
     var distance = Math.sqrt( xDist * xDist + yDist * yDist );
@@ -285,10 +368,61 @@
         // alert("Gameover");
         // document.location.reload();
     }
-  }
+    audioProcessing(distance);
 
+  }
+  function audioProcessing(distance){
+    if(distance < 100){
+      skip = !skip;
+      if(skip){
+        frequency = 160;
+      }
+      else{
+        frequency = 0;
+      }
+    }
+    else if(distance < 200 && distance > 100){
+      skip = !skip;
+      if(skip){
+        frequency = 100;
+      }
+      else{
+        frequency = 0;
+      }
+    }
+
+    else{
+      skip = !skip;
+      if(skip){
+        frequency = 60;
+      }
+      else{
+        frequency = 0;
+      }
+    }
+    o.frequency.value = frequency
+    o.connect(g)
+    g.connect(context.destination)
+  }
   if(!gameOver){
     setInterval(draw, 10);
+  }
+  function wallCollision(x, y, walls){
+    var canMove = true;
+    var xMin;
+    var xMax;
+    for(var i = 0; i < walls.length; i++){
+      xMin = walls[i].x;
+      xMax = walls[i].x + walls[i].width;
+      if(x < walls[i].x + walls[i].width && x > walls[i].x && y < walls[i].y + walls[i].height && y > walls[i].y){
+        return false;
+      }
+      else{
+        console.log(i + " x pass");
+        return true;
+      }
+    }
+    return false;
   }
 
 </script>
