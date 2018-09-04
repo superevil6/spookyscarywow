@@ -123,32 +123,39 @@
       rightPressed = false;
     }
   }
-  // function playerMovement(){
-  //   if(upPressed && playerY > 0 && wallCollision(playerX, playerY, walls)){
-  //     playerY -= moveSpeed;
-  //   }
-  //   if(downPressed && playerY < canvas.height-charArea && wallCollision(playerX, playerY, walls)){
-  //     playerY += moveSpeed;
-  //   }
-  //   if(leftPressed && playerX > 0 && wallCollision(playerX, playerY, walls)){
-  //     playerX -= moveSpeed;
-  //   }
-  //   if(rightPressed && playerX < canvas.width-charArea && wallCollision(playerX, playerY, walls)){
-  //     playerX += moveSpeed;
-  //   }
-  // }
-  function playerMovement(){
-    if(upPressed && playerY > 0){
-      playerY -= moveSpeed;
+
+  function playerMovement(rooms){
+    if(upPressed){
+      if(collisionCheck(rooms) && playerY > 0){
+        playerY -= moveSpeed;
+      }
+      else{
+        playerY += 1;
+      }
     }
-    if(downPressed && playerY < canvas.height-charArea){
-      playerY += moveSpeed;
+    if(downPressed){
+      if(collisionCheck(rooms) && playerY < canvas.height-charArea){
+        playerY += moveSpeed;
+      }
+      else{
+        playerY -= 1;
+      }
     }
-    if(leftPressed && playerX > 0){
-      playerX -= moveSpeed;
+    if(leftPressed){
+      if(collisionCheck(rooms) && playerX > 0){
+        playerX -= moveSpeed;
+      }
+      else{
+        playerX += 1;
+      }
     }
-    if(rightPressed && playerX < canvas.width-charArea){
-      playerX += moveSpeed;
+    if(rightPressed){
+      if(collisionCheck(rooms) && playerX < canvas.width-charArea){
+        playerX += moveSpeed;
+      }
+      else{
+        playerX -= 1;
+      }
     }
   }
   function drawPlayer(){
@@ -159,7 +166,7 @@
   }
   function drawDark(){
     ctx.beginPath();
-    ctx.fillStyle = "#FFFFFF33";
+    ctx.fillStyle = "#000000";
     ctx.rect(0, 0, canvas.width, canvas.height);
     ctx.fill();
     ctx.closePath();
@@ -184,16 +191,17 @@
     ctx.fill();
     ctx.closePath();
     ctx.clip();
-    drawMonster();
     drawDark();
-    drawRooms(rooms);
     drawKeys();
+    drawRooms(rooms);
+    drawMonster();
+    audioProcessing(distance = checkDistance(playerX, playerY, monsterX, monsterY));
     ctx.restore();
 
   }
   function drawRooms(rooms){
     for(var i = 0; i < rooms.length; i++){
-      ctx.fillStyle = "#000";
+      ctx.fillStyle = "#FFFFFF33";
       ctx.fillRect(rooms[i].x, rooms[i].y, rooms[i].width, rooms[i].height);
       ctx.closePath();
     }
@@ -246,9 +254,8 @@
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     drawLight();
     drawPlayer();
-    playerMovement()
-
-    checkDistance();
+    playerMovement(rooms);
+    // checkDistance();
   }
 
   //Keys
@@ -285,10 +292,10 @@
     var roomPositions = [];
     for(var i = 0; i < numberOfRooms; i++){
       if(i > 0){
-        rooms.push(generateRoom(i, rooms[i-1].x, rooms[i-1].y));
+        rooms.push(generateRoom(i, rooms[i-1].x, rooms[i-1].y, rooms[i-1].width, rooms[i-1].height));
       }
       else{
-        rooms.push(generateRoom(i, getRandomInt(10, 50), getRandomInt(10, 50)));
+        rooms.push(generateRoom(i, getRandomInt(10, 50), getRandomInt(10, 50), 0, 0));
       }
       findCenterOfRoom(rooms[i]);
     }
@@ -297,40 +304,33 @@
 
 
   var rooms = generateRooms();
-  function generateRoom(roomNumber, prevX, prevY){
+  function generateRoom(roomNumber, prevX, prevY, prevWidth, prevHeight){
     console.log(prevX, prevY);
-    var width = getRandomInt(150, 400);
-    var height = getRandomInt(150, 400);
-    var x = getRandomInt(prevX + 40, prevX + 100);
-    var y = getRandomInt(prevY, prevY + 20);
-    if(roomNumber % 3 == 0){
-      y += 100;
+    var width = getRandomInt(200, 250);
+    var height = getRandomInt(150, 150);
+    if(roomNumber == 0){
+      var x = getRandomInt((prevX + prevWidth) + 10 , (prevX + prevWidth) + 20);
+      var y = getRandomInt(prevY - 20, prevY + 20);
+    } else {
+      var x = getRandomInt((prevX + prevWidth) + 10 , (prevX + prevWidth) + 20);
+      var y = getRandomInt(prevY - 20, prevY + 20);
     }
-    return rooms = {"width" : width, "height" : height, "x" : x, "y" : y};
+    if(roomNumber == 3 || roomNumber == 6){
+      console.log("before" + y);
+      y += 200;
+      x -= 700;
+      console.log("after" + y);
+    }
+    return room = {"width" : width, "height" : height, "x" : x, "y" : y};
   }
-  function findCenterOfRoom(room){
-    roomCenter = (Math.sqrt( room.x * room.x + room.y * room.y ) / 2) + getRandomInt(-100, 100);
-    console.log(roomCenter);
+  function findCenterOfRoom(x, y){
+    roomCenter = (Math.sqrt( x * x + y * y ) / 2) + getRandomInt(-50, 50);
+    
   }
   function roomCoordinateGenerator(room){
 
   }
-  /*
-    When generating rooms, I want to be able to place them sufficiently appart, and I want to be able to create a hallway between them
-    A room should have at leasat two entrances so the player doesn't get trapped.
 
-    Considering making a static start and end room.
-
-    hallways should be generated between a range close to the middle of the room.
-
-    O-O---O
-    | |   |
-    O-O --O---O
-      |       |
-      O-------O
-
-      Generate rooms one at a time, and pass on the the xy of the previous room. change the minimum accordingly.
-  */
   function generateWall(){
     var width = Math.round(Math.random() * 500);
     var height = Math.round(Math.random() * 500);
@@ -359,19 +359,19 @@
     return Math.floor(Math.random() * (max - min)) + min; //The maximum is exclusive and the minimum is inclusive
   }
 
-  function checkDistance(){
-    var xDist = playerX - monsterX;
-    var yDist = playerY - monsterY;
-    var distance = Math.sqrt( xDist * xDist + yDist * yDist );
+  function checkDistance(objectOneX, objectOneY, objectTwoX, objectTwoX){
+    var xDist = objectOneX - objectTwoX;
+    var yDist = objectOneY - objectTwoX;
+    return Math.sqrt((xDist * xDist)+(yDist * yDist));
+  }
+  function checkGameover(){
     if(gameOver == false && distance < monsterArea - 5 && distance != 0){
       gameOver = true;
         // alert("Gameover");
         // document.location.reload();
     }
-    audioProcessing(distance);
-
   }
-  function audioProcessing(distance){
+  function audioProcessing(distance = checkDistance(playerX, playerY, monsterX, monsterY)){
     if(distance < 100){
       skip = !skip;
       if(skip){
@@ -407,23 +407,19 @@
   if(!gameOver){
     setInterval(draw, 10);
   }
-  function wallCollision(x, y, walls){
-    var canMove = true;
-    var xMin;
-    var xMax;
-    for(var i = 0; i < walls.length; i++){
-      xMin = walls[i].x;
-      xMax = walls[i].x + walls[i].width;
-      if(x < walls[i].x + walls[i].width && x > walls[i].x && y < walls[i].y + walls[i].height && y > walls[i].y){
-        return false;
-      }
-      else{
-        console.log(i + " x pass");
-        return true;
-      }
+
+function collisionCheck(rooms){
+  for(var i = 0; i < rooms.length; i++){
+    // console.log(playerX + " " + playerY + " " + "distance: " + checkDistance(playerX, playerY, rooms[i].x, rooms[i].y));
+    if(checkDistance(playerX, playerY, rooms[i].x, rooms[i].y) < 150){
+      return true;
+    }
+    else{
+      continue;
     }
     return false;
   }
+}
 
 </script>
 
